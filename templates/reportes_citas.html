@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block title %}Reportes de Citas{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>📊 Reportes de Citas</h1>
+    <p class="welcome-text" style="color: white;">Análisis y estadísticas del sistema de citas</p>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+  <h3>🔍 Filtros del Reporte</h3>
+  
+  <form method="get" class="filtros-form">
+    <div class="filtros-grid">
+      <div class="filtro-group">
+        <label for="desde">📅 Desde</label>
+        <input type="date" name="desde" id="desde" value="{{ desde_filtro or '' }}">
+      </div>
+      
+      <div class="filtro-group">
+        <label for="hasta">📅 Hasta</label>
+        <input type="date" name="hasta" id="hasta" value="{{ hasta_filtro or '' }}">
+      </div>
+      
+      <div class="filtro-group">
+        <label for="profesional">👩‍⚕️ Profesional</label>
+        <select name="profesional" id="profesional">
+          <option value="">Todos los profesionales</option>
+          {% for profesional in profesionales %}
+          <option value="{{ profesional.id }}" {% if profesional_filtro == profesional.id|string %}selected{% endif %}>
+            {{ profesional.nombre_completo }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="filtro-group">
+        <label for="estado">📋 Estado</label>
+        <select name="estado" id="estado">
+          <option value="">Todos los estados</option>
+          <option value="agendada" {% if estado_filtro == 'agendada' %}selected{% endif %}>⏳ Agendadas</option>
+          <option value="confirmada" {% if estado_filtro == 'confirmada' %}selected{% endif %}>✅ Confirmadas</option>
+          <option value="atendida" {% if estado_filtro == 'atendida' %}selected{% endif %}>🎉 Atendidas</option>
+          <option value="no_atendida" {% if estado_filtro == 'no_atendida' %}selected{% endif %}>⚠️ No Atendidas</option>
+          <option value="cancelada" {% if estado_filtro == 'cancelada' %}selected{% endif %}>❌ Canceladas</option>
+        </select>
+      </div>
+
+      <div class="filtro-group">
+        <label for="tipo_consulta">💻 Tipo Consulta</label>
+        <select name="tipo_consulta" id="tipo_consulta">
+          <option value="">Todos los tipos</option>
+          <option value="presencial" {% if tipo_consulta_filtro == 'presencial' %}selected{% endif %}>🏢 Presencial</option>
+          <option value="virtual" {% if tipo_consulta_filtro == 'virtual' %}selected{% endif %}>💻 Virtual</option>
+          <option value="domicilio" {% if tipo_consulta_filtro == 'domicilio' %}selected{% endif %}>🏠 Domicilio</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="acciones-filtros">
+      <button type="submit" class="btn primary">
+        🔍 Generar Reporte
+      </button>
+      
+      <a href="{{ url_for('reportes_citas') }}" class="btn secondary">
+        🗑️ Limpiar Filtros
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Estadísticas -->
+<div class="card">
+  <h3>📈 Estadísticas del Período</h3>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;">
+      <div style="font-size: 2.5rem; font-weight: bold;">{{ stats.total_citas or 0 }}</div>
+      <div style="font-size: 0.9rem;">Total Citas</div>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 10px;">
+      <div style="font-size: 2.5rem; font-weight: bold;">{{ stats.citas_agendadas or 0 }}</div>
+      <div style="font-size: 0.9rem;">Agendadas</div>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border-radius: 10px;">
+      <div style="font-size: 2.5rem; font-weight: bold;">{{ stats.citas_confirmadas or 0 }}</div>
+      <div style="font-size: 0.9rem;">Confirmadas</div>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border-radius: 10px;">
+      <div style="font-size: 2.5rem; font-weight: bold;">{{ stats.citas_atendidas or 0 }}</div>
+      <div style="font-size: 0.9rem;">Atendidas</div>
+    </div>
+
+    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; border-radius: 10px;">
+      <div style="font-size: 2.5rem; font-weight: bold;">{{ stats.citas_autorizadas or 0 }}</div>
+      <div style="font-size: 0.9rem;">Autorizadas</div>
+    </div>
+  </div>
+
+  <!-- Gráfico de estados -->
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h4>📊 Distribución por Estado</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #ffc107;">{{ stats.citas_agendadas or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">⏳ Agendadas</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #ffc107; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.citas_agendadas / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">{{ stats.citas_confirmadas or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">✅ Confirmadas</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #28a745; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.citas_confirmadas / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #17a2b8;">{{ stats.citas_atendidas or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">🎉 Atendidas</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #17a2b8; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.citas_atendidas / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #dc3545;">{{ stats.citas_canceladas or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">❌ Canceladas</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #dc3545; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.citas_canceladas / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #6f42c1;">{{ stats.citas_autorizadas or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">📋 Autorizadas</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #6f42c1; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.citas_autorizadas / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribución por tipo de consulta -->
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+    <h4>💻 Distribución por Tipo de Consulta</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #2e7d32;">{{ stats.presenciales or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">🏢 Presencial</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #2e7d32; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.presenciales / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #1976d2;">{{ stats.virtuales or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">💻 Virtual</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #1976d2; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.virtuales / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <div style="font-size: 1.2rem; font-weight: bold; color: #7b1fa2;">{{ stats.domicilio or 0 }}</div>
+        <div style="font-size: 0.8rem; color: #666;">🏠 Domicilio</div>
+        <div style="height: 8px; background: #e9ecef; border-radius: 4px; margin-top: 5px;">
+          <div style="height: 100%; background: #7b1fa2; border-radius: 4px; width: {% if stats.total_citas and stats.total_citas > 0 %}{{ (stats.domicilio / stats.total_citas * 100) }}{% else %}0{% endif %}%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de Citas -->
+<div class="card">
+  <div class="card-header">
+    <h3>📋 Detalle de Citas ({{ citas|length }} registros)</h3>
+    {% if desde_filtro or hasta_filtro or profesional_filtro or estado_filtro or tipo_consulta_filtro %}
+    <div class="filtros-activos">
+      <strong>Filtros aplicados:</strong>
+      {% if desde_filtro %} Desde: {{ desde_filtro }} {% endif %}
+      {% if hasta_filtro %} Hasta: {{ hasta_filtro }} {% endif %}
+      {% if profesional_filtro %} 
+        {% for p in profesionales %}
+          {% if p.id|string == profesional_filtro %} Profesional: {{ p.nombre_completo }}{% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if estado_filtro %} Estado: {{ estado_filtro }} {% endif %}
+      {% if tipo_consulta_filtro %} Tipo: {{ tipo_consulta_filtro }} {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if citas %}
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha y Hora</th>
+          <th>Familia</th>
+          <th>Paciente</th>
+          <th>Profesional</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Autorización</th>
+          <th>Duración</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cita in citas %}
+        <tr>
+          <td><strong>#{{ cita.id }}</strong></td>
+          <td>{{ cita.fecha_hora[:16] }}</td>
+          <td>{{ cita.nombres_apellidos }}</td>
+          <td>{{ cita.nombre_hijo_hija }}</td>
+          <td>
+            <span style="color: {{ cita.color_calendario }}; font-weight: 600;">
+              {{ cita.profesional_nombre }}
+            </span>
+          </td>
+          <td>
+            {% if cita.tipo_consulta == 'virtual' %}
+            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              💻 Virtual
+            </span>
+            {% elif cita.tipo_consulta == 'domicilio' %}
+            <span style="background: #f3e5f5; color: #7b1fa2; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              🏠 Domicilio
+            </span>
+            {% else %}
+            <span style="background: #e8f5e8; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              🏢 Presencial
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cita.estado == 'agendada' %}
+            <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ⏳ Agendada
+            </span>
+            {% elif cita.estado == 'confirmada' %}
+            <span style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ✅ Confirmada
+            </span>
+            {% elif cita.estado == 'atendida' %}
+            <span style="background: #d1ecf1; color: #0c5460; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              🎉 Atendida
+            </span>
+            {% elif cita.estado == 'no_atendida' %}
+            <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ⚠️ No Atendida
+            </span>
+            {% elif cita.estado == 'cancelada' %}
+            <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ❌ Cancelada
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cita.cita_autorizada %}
+            <span style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ✅ Autorizada
+            </span>
+            {% else %}
+            <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              ⏳ Pendiente
+            </span>
+            {% endif %}
+          </td>
+          <td>{{ cita.duracion }} min</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <h3>No se encontraron citas</h3>
+    <p>No hay citas que coincidan con los filtros aplicados.</p>
+    <p>Intenta ajustar los criterios de búsqueda.</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.filtros-form {
+  margin-bottom: 20px;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filtro-group label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #495057;
+}
+
+.filtro-group input, .filtro-group select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.acciones-filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filtros-activos {
+  background: #e8f4fd;
+  padding: 10px 15px;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .filtros-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .acciones-filtros {
+    flex-direction: column;
+  }
+  
+  .acciones-filtros .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+</style>
+
+<script>
+// Establecer fecha por defecto (últimos 30 días)
+window.addEventListener('DOMContentLoaded', function() {
+  const desdeInput = document.getElementById('desde');
+  const hastaInput = document.getElementById('hasta');
+  
+  if (!desdeInput.value) {
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    desdeInput.value = hace30Dias.toISOString().split('T')[0];
+  }
+  
+  if (!hastaInput.value) {
+    hastaInput.value = new Date().toISOString().split('T')[0];
+  }
+});
+</script>
+{% endblock %}

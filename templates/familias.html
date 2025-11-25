@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Familias{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>👨‍👩‍👧‍👦 Gestión de Familias</h1>
+    <p class="welcome-text" style="color: white;">Administración de familias y pacientes registrados</p>
+  </div>
+</div>
+
+<!-- Buscador y Agregar Familia -->
+<div class="card">
+  <div style="display: flex; justify-content: between; align-items: end; gap: 20px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 300px;">
+      <h3>🔍 Buscar Familias</h3>
+      <form method="get" action="{{ url_for('familias') }}">
+        <div style="display: flex; gap: 10px;">
+          <input type="text" name="buscar" value="{{ buscar }}" 
+                 placeholder="Buscar por nombre, teléfono o identificación..." 
+                 style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <button type="submit" class="btn primary">Buscar</button>
+          {% if buscar %}
+          <a href="{{ url_for('familias') }}" class="btn secondary">Limpiar</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    
+    <div>
+      <button type="button" class="btn success" onclick="mostrarModalAgregar()">
+        <span style="margin-right: 8px;">➕</span>
+        Agregar Familia
+      </button>
+    </div>
+  </div>
+
+  <!-- Información de paginación -->
+  {% if total_familias > 0 %}
+  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #666; font-size: 0.9rem;">
+        Mostrando {{ familias|length }} de {{ total_familias }} familias
+      </span>
+      {% if total_paginas > 1 %}
+      <div style="display: flex; gap: 5px; align-items: center;">
+        {% if pagina > 1 %}
+        <a href="{{ url_for('familias', pagina=pagina-1, buscar=buscar) }}" class="btn small secondary">← Anterior</a>
+        {% endif %}
+        
+        <span style="color: #666; font-size: 0.9rem;">
+          Página {{ pagina }} de {{ total_paginas }}
+        </span>
+        
+        {% if pagina < total_paginas %}
+        <a href="{{ url_for('familias', pagina=pagina+1, buscar=buscar) }}" class="btn small secondary">Siguiente →</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Lista de Familias -->
+<div class="card">
+  <div class="card-header">
+    <h3>Familias Registradas: {{ total_familias }}</h3>
+    <p>Lista completa de familias en el sistema</p>
+  </div>
+
+  {% if familias %}
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Información de Contacto</th>
+          <th>Paciente</th>
+          <th>Identificación</th>
+          <th>Teléfonos</th>
+          <th>Dirección</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for familia in familias %}
+        <tr>
+          <td>
+            <strong>{{ familia.nombres_apellidos }}</strong><br>
+            <small style="color: #666;">{{ familia.email if familia.email else 'Sin email' }}</small>
+          </td>
+          <td>
+            <strong>{{ familia.nombre_hijo_hija }}</strong><br>
+            <small style="color: #666;">
+              {% if familia.edad_actual %}
+                {{ familia.edad_actual }} años
+              {% else %}
+                Edad no especificada
+              {% endif %}
+            </small>
+          </td>
+          <td>
+            <span style="background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              {{ familia.tipo_identificacion }}: {{ familia.numero_identificacion }}
+            </span>
+          </td>
+          <td>
+            <strong>{{ familia.telefono_principal }}</strong>
+            {% if familia.telefono_secundario %}
+            <br><small style="color: #666;">Sec: {{ familia.telefono_secundario }}</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if familia.direccion %}
+            <small>{{ familia.direccion[:50] }}{% if familia.direccion|length > 50 %}...{% endif %}</small>
+            {% else %}
+            <small style="color: #999;">Sin dirección</small>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button type="button" class="btn small info" onclick="mostrarDetallesFamilia({{ familia.id }})">
+                👁️ Ver
+              </button>
+              <a href="{{ url_for('calendario') }}?familia_id={{ familia.id }}" class="btn small primary">
+                📅 Cita
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Navegación inferior -->
+  {% if total_paginas > 1 %}
+  <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+    {% if pagina > 1 %}
+    <a href="{{ url_for('familias', pagina=1, buscar=buscar) }}" class="btn small secondary">« Primera</a>
+    <a href="{{ url_for('familias', pagina=pagina-1, buscar=buscar) }}" class="btn small secondary">← Anterior</a>
+    {% endif %}
+    
+    <span style="padding: 8px 12px; background: #007bff; color: white; border-radius: 6px; font-size: 0.9rem;">
+      Página {{ pagina }} de {{ total_paginas }}
+    </span>
+    
+    {% if pagina < total_paginas %}
+    <a href="{{ url_for('familias', pagina=pagina+1, buscar=buscar) }}" class="btn small secondary">Siguiente →</a>
+    <a href="{{ url_for('familias', pagina=total_paginas, buscar=buscar) }}" class="btn small secondary">Última »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">👨‍👩‍👧‍👦</div>
+    <h3>No se encontraron familias</h3>
+    <p>{% if buscar %}No hay familias que coincidan con "{{ buscar }}"{% else %}No hay familias registradas en el sistema{% endif %}</p>
+    <p>Agrega una nueva familia usando el botón superior.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Agregar Familia -->
+<div id="agregarModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="close">&times;</span>
+    <h3>➕ Agregar Nueva Familia</h3>
+    <form action="{{ url_for('agregar_familia') }}" method="post" id="formAgregarFamilia">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="nombres_apellidos">Nombres y Apellidos *</label>
+          <input type="text" name="nombres_apellidos" id="nombres_apellidos" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="nombre_hijo_hija">Nombre del Hijo/Hija *</label>
+          <input type="text" name="nombre_hijo_hija" id="nombre_hijo_hija" required>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="tipo_identificacion">Tipo Identificación *</label>
+          <select name="tipo_identificacion" id="tipo_identificacion" required>
+            <option value="Cédula">Cédula</option>
+            <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+            <option value="Pasaporte">Pasaporte</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="numero_identificacion">Número Identificación *</label>
+          <input type="text" name="numero_identificacion" id="numero_identificacion" required>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="telefono_principal">Teléfono Principal *</label>
+          <input type="tel" name="telefono_principal" id="telefono_principal" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="telefono_secundario">Teléfono Secundario</label>
+          <input type="tel" name="telefono_secundario" id="telefono_secundario">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" name="email" id="email">
+        </div>
+        
+        <div class="form-group">
+          <label for="fecha_nacimiento_hijo">Fecha Nacimiento Hijo/Hija</label>
+          <input type="date" name="fecha_nacimiento_hijo" id="fecha_nacimiento_hijo">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="direccion">Dirección</label>
+        <textarea name="direccion" id="direccion" rows="2" placeholder="Dirección completa..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="notas">Notas Adicionales</label>
+        <textarea name="notas" id="notas" rows="2" placeholder="Información adicional relevante..."></textarea>
+      </div>
+
+      <button type="submit" class="btn primary">Agregar Familia</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Ver Detalles Familia -->
+<div id="detallesFamiliaModal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <span class="close">&times;</span>
+    <h3>👁️ Detalles de Familia</h3>
+    <div id="detallesFamiliaContent">
+      <!-- Los detalles se cargarán aquí -->
+    </div>
+  </div>
+</div>
+
+<style>
+.table-container {
+  overflow-x: auto;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 25px;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.close {
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #666;
+}
+
+.close:hover {
+  color: #000;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.familia-detalle {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.familia-detalle strong {
+  color: #495057;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.familia-detalle .valor {
+  color: #333;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 2% auto;
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .table-container {
+    font-size: 0.8rem;
+  }
+}
+</style>
+
+<script>
+function mostrarModalAgregar() {
+  document.getElementById('agregarModal').style.display = 'block';
+}
+
+function mostrarDetallesFamilia(familiaId) {
+  // Simular carga de datos (en producción esto haría una petición AJAX)
+  const detallesContent = document.getElementById('detallesFamiliaContent');
+  detallesContent.innerHTML = `
+    <div style="text-align: center; padding: 20px;">
+      <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+      <p>Cargando detalles de la familia...</p>
+    </div>
+  `;
+  
+  document.getElementById('detallesFamiliaModal').style.display = 'block';
+  
+  // Simular delay de carga
+  setTimeout(() => {
+    detallesContent.innerHTML = `
+      <div class="familia-detalle">
+        <strong>Información de Contacto</strong>
+        <div class="valor">Cargando información...</div>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <p>En una implementación completa, aquí se mostrarían todos los detalles de la familia.</p>
+        <p><small>Esta funcionalidad requiere una API adicional para cargar datos específicos.</small></p>
+      </div>
+    `;
+  }, 1000);
+}
+
+// Cerrar modales
+document.querySelectorAll('.close').forEach(closeBtn => {
+  closeBtn.onclick = function() {
+    this.closest('.modal').style.display = 'none';
+  };
+});
+
+// Cerrar modal al hacer click fuera
+window.onclick = function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = 'none';
+  }
+}
+
+// Validar formulario antes de enviar
+document.getElementById('formAgregarFamilia').onsubmit = function(e) {
+  const telefono = document.getElementById('telefono_principal').value;
+  const email = document.getElementById('email').value;
+  
+  // Validar teléfono
+  if (!telefono.match(/^[0-9+]{10,15}$/)) {
+    alert('Por favor ingrese un número de teléfono válido (solo números, 10-15 dígitos)');
+    e.preventDefault();
+    return false;
+  }
+  
+  // Validar email si se proporciona
+  if (email && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    alert('Por favor ingrese un email válido');
+    e.preventDefault();
+    return false;
+  }
+  
+  return true;
+}
+
+// Animación para spinner
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
