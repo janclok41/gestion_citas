@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Error del Servidor{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>🚨 500 - Error del Servidor</h1>
+    <p class="welcome-text" style="color: white;">Ha ocurrido un error interno en el servidor</p>
+  </div>
+</div>
+
+<div class="card">
+  <div style="text-align: center; padding: 60px 20px;">
+    <div style="font-size: 8rem; margin-bottom: 20px;">🚨</div>
+    <h2 style="color: #495057; margin-bottom: 20px;">Error Interno del Servidor</h2>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+      Ha ocurrido un error inesperado. Nuestro equipo técnico ha sido notificado y está trabajando en la solución.
+    </p>
+    
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px;">
+      <a href="{{ url_for('dashboard') }}" class="btn primary">
+        <span style="margin-right: 8px;">🏠</span>
+        Ir al Dashboard
+      </a>
+      <button onclick="window.location.reload()" class="btn success">
+        <span style="margin-right: 8px;">🔄</span>
+        Reintentar
+      </button>
+      <button onclick="window.history.back()" class="btn secondary">
+        <span style="margin-right: 8px;">↩️</span>
+        Volver Atrás
+      </button>
+    </div>
+
+    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; max-width: 600px; margin: 0 auto; border-left: 4px solid #ffc107;">
+      <h4 style="color: #856404; margin-bottom: 15px;">⚠️ Información del Error</h4>
+      <div style="text-align: left; color: #856404;">
+        <p><strong>Posibles causas:</strong></p>
+        <ul style="margin-top: 10px;">
+          <li>Problemas temporales del servidor</li>
+          <li>Error en la base de datos</li>
+          <li>Problemas de conectividad</li>
+          <li>Mantenimiento programado</li>
+        </ul>
+        <p style="margin-top: 15px;">
+          <strong>📞 Contacto:</strong> Si el problema persiste, contacta al administrador del sistema.
+        </p>
+      </div>
+    </div>
+
+    <!-- Información para desarrolladores (solo en modo debug) -->
+    {% if config.DEBUG %}
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; max-width: 600px; margin: 20px auto 0; text-align: left;">
+      <h4 style="color: #495057; margin-bottom: 15px;">🐛 Información para Desarrollo</h4>
+      <div style="font-family: monospace; font-size: 0.9rem; color: #666;">
+        <p><strong>Modo Debug:</strong> Activado</p>
+        <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+        <p><strong>Usuario:</strong> {{ session.get('usuario', 'No autenticado') }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.btn.primary {
+  background: #007bff;
+  color: white;
+  border: none;
+}
+
+.btn.success {
+  background: #28a745;
+  color: white;
+  border: none;
+}
+
+.btn.secondary {
+  background: #6c757d;
+  color: white;
+  border: none;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+}
+</style>
+
+<script>
+// Mostrar timestamp actual
+document.getElementById('timestamp').textContent = new Date().toLocaleString();
+</script>
+{% endblock %}

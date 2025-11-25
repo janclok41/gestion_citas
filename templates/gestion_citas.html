@@ -1,0 +1,766 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Citas{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>👥 Gestión de Citas</h1>
+    <p class="welcome-text" style="color: white;">Administración y seguimiento de todas las citas</p>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+  <h3>🔍 Filtros de Búsqueda</h3>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div>
+      <label for="vistaFiltro">Vista:</label>
+      <select id="vistaFiltro" onchange="aplicarFiltros()" class="form-control">
+        <option value="pendientes" {% if vista_actual == 'pendientes' %}selected{% endif %}>⏳ Pendientes</option>
+        <option value="hoy" {% if vista_actual == 'hoy' %}selected{% endif %}>📅 Hoy</option>
+        <option value="semana" {% if vista_actual == 'semana' %}selected{% endif %}>📆 Esta Semana</option>
+        <option value="pasadas" {% if vista_actual == 'pasadas' %}selected{% endif %}>📋 Pasadas</option>
+        <option value="sin_autorizar" {% if vista_actual == 'sin_autorizar' %}selected{% endif %}>📋 Sin Autorizar</option>
+        <option value="autorizadas" {% if vista_actual == 'autorizadas' %}selected{% endif %}>✅ Autorizadas</option>
+        <option value="">📋 Todas</option>
+      </select>
+    </div>
+    
+    {% if rol in ['admin', 'coordinadora'] %}
+    <div>
+      <label for="profesionalFiltro">Profesional:</label>
+      <select id="profesionalFiltro" onchange="aplicarFiltros()" class="form-control">
+        <option value="">Todos</option>
+        {% for prof in profesionales %}
+        <option value="{{ prof.id }}" {% if profesional_filtro == prof.id|string %}selected{% endif %}>
+          {{ prof.nombre_completo }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    
+    <div>
+      <label for="estadoFiltro">Estado:</label>
+      <select id="estadoFiltro" onchange="aplicarFiltros()" class="form-control">
+        <option value="">Todos</option>
+        <option value="agendada" {% if estado_filtro == 'agendada' %}selected{% endif %}>⏳ Agendada</option>
+        <option value="confirmada" {% if estado_filtro == 'confirmada' %}selected{% endif %}>✅ Confirmada</option>
+        <option value="atendida" {% if estado_filtro == 'atendida' %}selected{% endif %}>🎉 Atendida</option>
+        <option value="no_atendida" {% if estado_filtro == 'no_atendida' %}selected{% endif %}>⚠️ No Atendida</option>
+        <option value="cancelada" {% if estado_filtro == 'cancelada' %}selected{% endif %}>❌ Cancelada</option>
+      </select>
+    </div>
+    
+    {% if rol in ['admin', 'administracion', 'coordinadora'] %}
+    <div>
+      <label for="autorizacionFiltro">Autorización:</label>
+      <select id="autorizacionFiltro" onchange="aplicarFiltros()" class="form-control">
+        <option value="">Todas</option>
+        <option value="pendientes" {% if autorizacion_filtro == 'pendientes' %}selected{% endif %}>⏳ Pendientes</option>
+        <option value="autorizadas" {% if autorizacion_filtro == 'autorizadas' %}selected{% endif %}>✅ Autorizadas</option>
+      </select>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Resumen -->
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h3>📋 Citas Encontradas: {{ citas|length }}</h3>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+        ⏳ Agendadas: {{ citas|selectattr('estado', 'equalto', 'agendada')|list|length }}
+      </span>
+      <span style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+        ✅ Confirmadas: {{ citas|selectattr('estado', 'equalto', 'confirmada')|list|length }}
+      </span>
+      <span style="background: #d1ecf1; color: #0c5460; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+        🎉 Atendidas: {{ citas|selectattr('estado', 'equalto', 'atendida')|list|length }}
+      </span>
+      <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+        ❌ Canceladas: {{ citas|selectattr('estado', 'equalto', 'cancelada')|list|length }}
+      </span>
+      {% if rol in ['admin', 'administracion'] %}
+      <span style="background: #e2e3e5; color: #383d41; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+        📋 Sin Autorizar: {{ citas|selectattr('cita_autorizada', 'equalto', 0)|selectattr('estado', 'in', ['agendada', 'confirmada'])|list|length }}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if citas %}
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha y Hora</th>
+          <th>Familia</th>
+          <th>Paciente</th>
+          {% if rol in ['admin', 'coordinadora'] %}
+          <th>Profesional</th>
+          {% endif %}
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Autorización</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cita in citas %}
+        <tr style="border-left: 4px solid {{ cita.color_calendario }};">
+          <td><strong>#{{ cita.id }}</strong></td>
+          <td>
+            <strong>{{ cita.fecha_hora[:16] }}</strong><br>
+            <small style="color: #666;">{{ cita.duracion }} min</small>
+          </td>
+          <td>
+            <strong>{{ cita.familia_nombre }}</strong><br>
+            <small style="color: #666;">{{ cita.telefono_principal if cita.telefono_principal else 'Sin teléfono' }}</small>
+          </td>
+          <td>{{ cita.nombre_hijo_hija }}</td>
+          {% if rol in ['admin', 'coordinadora'] %}
+          <td>
+            <span style="color: {{ cita.color_calendario }}; font-weight: 600;">
+              {{ cita.profesional_nombre }}
+            </span>
+          </td>
+          {% endif %}
+          <td>
+            {% if cita.tipo_consulta == 'virtual' %}
+            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              💻 Virtual
+            </span>
+            {% elif cita.tipo_consulta == 'domicilio' %}
+            <span style="background: #f3e5f5; color: #7b1fa2; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              🏠 Domicilio
+            </span>
+            {% else %}
+            <span style="background: #e8f5e8; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              🏢 Presencial
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cita.estado == 'agendada' %}
+            <span style="background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ⏳ Agendada
+            </span>
+            {% elif cita.estado == 'confirmada' %}
+            <span style="background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ✅ Confirmada
+            </span>
+            {% elif cita.estado == 'atendida' %}
+            <span style="background: #d1ecf1; color: #0c5460; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              🎉 Atendida
+            </span>
+            {% elif cita.estado == 'no_atendida' %}
+            <span style="background: #f8d7da; color: #721c24; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ⚠️ No Atendida
+            </span>
+            {% elif cita.estado == 'cancelada' %}
+            <span style="background: #f8d7da; color: #721c24; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ❌ Cancelada
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cita.cita_autorizada %}
+            <span style="background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ✅ Autorizada
+            </span>
+            {% else %}
+            <span style="background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ⏳ Pendiente
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button type="button" class="btn small success" 
+                      onclick="mostrarModalEstado({{ cita.id }}, '{{ cita.estado }}', {{ 1 if cita.cita_autorizada else 0 }})"
+                      {% if cita.estado in ['atendida', 'cancelada'] %}disabled{% endif %}>
+                ✏️ Estado
+              </button>
+              <button type="button" class="btn small info" 
+                      onclick="mostrarDetallesFamilia({{ cita.id }})">
+                👁️ Ver Familia
+              </button>
+              {% if cita.motivo_consulta or cita.notas %}
+              <button type="button" class="btn small warning" 
+                      onclick="mostrarDetallesCita({{ cita.id }}, '{{ cita.motivo_consulta }}', '{{ cita.notas }}')">
+                📋 Detalles
+              </button>
+              {% endif %}
+              {% if rol in ['admin', 'administracion'] and not cita.cita_autorizada and cita.estado in ['agendada', 'confirmada'] %}
+              <button type="button" class="btn small primary" 
+                      onclick="autorizarCita({{ cita.id }})">
+                📋 Autorizar
+              </button>
+              {% endif %}
+              {% if rol in ['admin', 'coordinadora'] %}
+              <button type="button" class="btn small danger" 
+                      onclick="eliminarCita({{ cita.id }})">
+                🗑️ Eliminar
+              </button>
+              {% endif %}
+              {% if rol in ['admin', 'coordinadora'] %}
+              <a href="{{ url_for('calendario') }}" class="btn small secondary">
+                📅 Calendario
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <h3>No se encontraron citas</h3>
+    <p>No hay citas que coincidan con los filtros aplicados.</p>
+    <p>Intenta ajustar los criterios de búsqueda.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Cambiar Estado -->
+<div id="estadoModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>✏️ Cambiar Estado de Cita</h3>
+      <span class="close">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="estadoForm" method="post">
+        <input type="hidden" name="cita_id" id="citaId">
+        <div class="form-group">
+          <label for="nuevo_estado">Nuevo Estado:</label>
+          <select name="estado" id="nuevo_estado" required class="form-control">
+            <option value="agendada">⏳ Agendada</option>
+            <option value="confirmada">✅ Confirmada</option>
+            <option value="atendida" id="opcionAtendida">🎉 Atendida</option>
+            <option value="no_atendida">⚠️ No Atendida</option>
+            <option value="cancelada">❌ Cancelada</option>
+          </select>
+          <div id="alertaAutorizacion" style="display: none; background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 0.9rem; border-left: 4px solid #ffc107;">
+            ⚠️ <strong>Restricción:</strong> Solo puede marcar como atendida si la cita está autorizada por administración.
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="notas_estado">Notas (opcional):</label>
+          <textarea name="notas" id="notas_estado" rows="3" placeholder="Observaciones sobre el cambio de estado..." maxlength="500" class="form-control"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="cerrarModal('estadoModal')">Cancelar</button>
+      <button type="button" class="btn primary" onclick="enviarFormularioEstado()">Actualizar Estado</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalles de Cita -->
+<div id="detallesCitaModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📋 Detalles de la Cita</h3>
+      <span class="close">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div id="detallesCitaContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="cerrarModal('detallesCitaModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalles de Familia -->
+<div id="detallesFamiliaModal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3>👨‍👩‍👧‍👦 Información de la Familia</h3>
+      <span class="close">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div id="detallesFamiliaContent">
+        <div style="text-align: center; padding: 40px 20px;">
+          <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+          <p style="color: #666; font-size: 1rem;">Cargando información de la familia...</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="cerrarModal('detallesFamiliaModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.familia-info-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.familia-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 4px solid #3498db;
+}
+
+.familia-section h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.info-item {
+  margin-bottom: 8px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+.info-value {
+  color: #2c3e50;
+  word-break: break-word;
+  padding: 4px 0;
+}
+
+.info-value.empty {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.citas-section {
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+}
+
+.cita-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+}
+
+.cita-item.cancelada {
+  border-left-color: #f44336;
+}
+
+.cita-item.agendada {
+  border-left-color: #ffc107;
+}
+
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .btn.small {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    margin-bottom: 5px;
+  }
+}
+</style>
+
+<script>
+let citaAutorizadaActual = false;
+let citaIdActual = null;
+
+function aplicarFiltros() {
+  const vista = document.getElementById('vistaFiltro').value;
+  const profesional = document.getElementById('profesionalFiltro')?.value || '';
+  const estado = document.getElementById('estadoFiltro').value;
+  const autorizacion = document.getElementById('autorizacionFiltro')?.value || '';
+  
+  let url = '{{ url_for("gestion_citas") }}?';
+  const params = [];
+  
+  if (vista) params.push(`vista=${vista}`);
+  if (profesional) params.push(`profesional=${profesional}`);
+  if (estado) params.push(`estado=${estado}`);
+  if (autorizacion) params.push(`autorizacion=${autorizacion}`);
+  
+  window.location.href = url + params.join('&');
+}
+
+function mostrarModalEstado(citaId, estadoActual, citaAutorizada) {
+  citaIdActual = citaId;
+  document.getElementById('citaId').value = citaId;
+  document.getElementById('nuevo_estado').value = estadoActual;
+  citaAutorizadaActual = citaAutorizada;
+  
+  // Mostrar/ocultar alerta según autorización
+  const alertaAutorizacion = document.getElementById('alertaAutorizacion');
+  const opcionAtendida = document.getElementById('opcionAtendida');
+  
+  if (!citaAutorizada) {
+    alertaAutorizacion.style.display = 'block';
+    opcionAtendida.disabled = true;
+    opcionAtendida.style.opacity = '0.5';
+  } else {
+    alertaAutorizacion.style.display = 'none';
+    opcionAtendida.disabled = false;
+    opcionAtendida.style.opacity = '1';
+  }
+  
+  document.getElementById('estadoModal').style.display = 'block';
+}
+
+function autorizarCita(citaId) {
+  if (confirm('¿Está seguro de que desea autorizar esta cita?\n\nLa profesional podrá marcar la cita como atendida.')) {
+    fetch(`/citas/${citaId}/autorizar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }
+    }).then(response => {
+      if (response.ok) {
+        location.reload();
+      } else {
+        alert('Error al autorizar la cita');
+      }
+    });
+  }
+}
+
+function eliminarCita(citaId) {
+  if (confirm('¿Está seguro de que desea ELIMINAR esta cita?\n\n⚠️ Esta acción no se puede deshacer y eliminará permanentemente la cita.')) {
+    fetch(`/citas/${citaId}/eliminar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }
+    }).then(response => {
+      if (response.ok) {
+        location.reload();
+      } else {
+        alert('Error al eliminar la cita');
+      }
+    });
+  }
+}
+
+function mostrarDetallesCita(citaId, motivo, notas) {
+  let contenido = '<div class="familia-section">';
+  contenido += '<h4>📋 Información de la Cita</h4>';
+  
+  if (motivo) {
+    contenido += `<div class="info-item">
+      <div class="info-label">Motivo de Consulta</div>
+      <div class="info-value">${motivo}</div>
+    </div>`;
+  }
+  
+  if (notas) {
+    contenido += `<div class="info-item">
+      <div class="info-label">Notas Adicionales</div>
+      <div class="info-value">${notas}</div>
+    </div>`;
+  }
+  
+  if (!motivo && !notas) {
+    contenido += '<p style="text-align: center; color: #666; padding: 20px;">No hay información adicional para esta cita.</p>';
+  }
+  
+  contenido += '</div>';
+  
+  document.getElementById('detallesCitaContent').innerHTML = contenido;
+  document.getElementById('detallesCitaModal').style.display = 'block';
+}
+
+function mostrarDetallesFamilia(citaId) {
+  // Mostrar modal inmediatamente con loading
+  document.getElementById('detallesFamiliaModal').style.display = 'block';
+  
+  // Obtener información de la familia desde la API
+  fetch(`/api/familias/cita/${citaId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error al obtener datos de la familia');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.status === 'success') {
+        const familia = data.familia;
+        const citasRecientes = data.citas_recientes || [];
+        
+        let contenido = `
+          <div class="familia-info-container">
+            <div class="familia-section">
+              <h4>👤 Información de Contacto</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Nombre Completo</div>
+                  <div class="info-value">${familia.nombres_apellidos || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Email</div>
+                  <div class="info-value ${!familia.email ? 'empty' : ''}">
+                    ${familia.email || 'No especificado'}
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Identificación</div>
+                  <div class="info-value">${familia.tipo_identificacion || 'No especificado'}: ${familia.numero_identificacion || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>📞 Información de Contacto</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Teléfono Principal</div>
+                  <div class="info-value">${familia.telefono_principal || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Teléfono Secundario</div>
+                  <div class="info-value ${!familia.telefono_secundario ? 'empty' : ''}">
+                    ${familia.telefono_secundario || 'No especificado'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>🏠 Dirección</h4>
+              <div class="info-item">
+                <div class="info-label">Dirección Completa</div>
+                <div class="info-value ${!familia.direccion ? 'empty' : ''}">
+                  ${familia.direccion || 'No especificada'}
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>👶 Información del Paciente</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Nombre del Hijo/Hija</div>
+                  <div class="info-value">${familia.nombre_hijo_hija || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Fecha de Nacimiento</div>
+                  <div class="info-value ${!familia.fecha_nacimiento_hijo ? 'empty' : ''}">
+                    ${familia.fecha_nacimiento_formateada || familia.fecha_nacimiento_hijo || 'No especificada'}
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Edad Actual</div>
+                  <div class="info-value ${!familia.edad_actual ? 'empty' : ''}">
+                    ${familia.edad_actual ? familia.edad_actual + ' años' : 'No calculada'}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        
+        // Agregar sección de citas recientes si existen
+        if (citasRecientes.length > 0) {
+          contenido += `
+            <div class="familia-section citas-section">
+              <h4>📅 Citas Recientes</h4>
+              <div style="font-size: 0.9rem;">
+                ${citasRecientes.map(cita => `
+                  <div class="cita-item ${cita.estado}">
+                    <strong>#${cita.id}</strong> - ${cita.fecha_hora ? cita.fecha_hora.substring(0, 16) : 'Fecha no disponible'}<br>
+                    <small>${cita.profesional_nombre || 'Profesional no asignado'} - ${cita.tipo_consulta || 'Tipo no especificado'}</small><br>
+                    <span style="background: ${getColorEstado(cita.estado)}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
+                      ${getTextoEstado(cita.estado)}
+                    </span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>`;
+        }
+        
+        // Agregar notas si existen
+        if (familia.notas) {
+          contenido += `
+            <div class="familia-section">
+              <h4>📝 Información Adicional</h4>
+              <div class="info-item">
+                <div class="info-label">Notas</div>
+                <div class="info-value">${familia.notas}</div>
+              </div>
+            </div>`;
+        }
+        
+        contenido += `</div>`;
+        
+        document.getElementById('detallesFamiliaContent').innerHTML = contenido;
+      } else {
+        throw new Error(data.error || 'Error desconocido');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('detallesFamiliaContent').innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+          <div style="font-size: 3rem; margin-bottom: 20px;">❌</div>
+          <h4>Error al cargar información</h4>
+          <p>No se pudieron cargar los datos de la familia.</p>
+          <p><small>Error: ${error.message}</small></p>
+          <button type="button" class="btn primary" onclick="mostrarDetallesFamilia(${citaId})" style="margin-top: 15px;">
+            🔄 Reintentar
+          </button>
+        </div>
+      `;
+    });
+}
+
+// Funciones auxiliares para estados
+function getColorEstado(estado) {
+  const colores = {
+    'agendada': '#ffc107',
+    'confirmada': '#28a745',
+    'atendida': '#17a2b8',
+    'cancelada': '#dc3545',
+    'no_atendida': '#6c757d'
+  };
+  return colores[estado] || '#6c757d';
+}
+
+function getTextoEstado(estado) {
+  const textos = {
+    'agendada': '⏳ Agendada',
+    'confirmada': '✅ Confirmada',
+    'atendida': '🎉 Atendida',
+    'cancelada': '❌ Cancelada',
+    'no_atendida': '⚠️ No Atendida'
+  };
+  return textos[estado] || estado;
+}
+
+function cerrarModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+}
+
+function enviarFormularioEstado() {
+  // Validar que si es profesional y quiere marcar como atendida, esté autorizada
+  const nuevoEstado = document.getElementById('nuevo_estado').value;
+  const rol = '{{ rol }}';
+  
+  if (rol === 'profesional' && nuevoEstado === 'atendida' && !citaAutorizadaActual) {
+    alert('No puede marcar la cita como atendida hasta que sea autorizada por administración');
+    return false;
+  }
+  
+  const formData = new FormData(document.getElementById('estadoForm'));
+  
+  fetch('/citas/' + citaIdActual + '/actualizar_estado', {
+    method: 'POST',
+    body: formData
+  }).then(response => {
+    if (response.ok) {
+      cerrarModal('estadoModal');
+      location.reload();
+    } else {
+      alert('Error al actualizar el estado de la cita');
+    }
+  });
+}
+
+// Cerrar modales
+document.querySelectorAll('.close').forEach(closeBtn => {
+  closeBtn.onclick = function() {
+    this.closest('.modal').style.display = 'none';
+  };
+});
+
+// Cerrar modal al hacer click fuera
+window.onclick = function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = 'none';
+  }
+}
+
+// Tecla Escape para cerrar modales
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.style.display = 'none';
+    });
+  }
+});
+
+// Actualización automática de contadores en esta página
+document.addEventListener('DOMContentLoaded', function() {
+  // Configurar actualización cada 15 segundos para esta página
+  setInterval(() => {
+    if (typeof actualizarTodosLosContadores === 'function') {
+      actualizarTodosLosContadores();
+    }
+  }, 15000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,706 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Familias{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>👨‍👩‍👧‍👦 Gestión de Familias</h1>
+    <p class="welcome-text" style="color: white;">Administración de familias y pacientes registrados</p>
+  </div>
+</div>
+
+<!-- Buscador y Agregar Familia -->
+<div class="card">
+  <div style="display: flex; justify-content: between; align-items: end; gap: 20px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 300px;">
+      <h3>🔍 Buscar Familias</h3>
+      <form method="get" action="{{ url_for('familias') }}">
+        <div style="display: flex; gap: 10px;">
+          <input type="text" name="buscar" value="{{ buscar }}" 
+                 placeholder="Buscar por nombre, teléfono o identificación..." 
+                 style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <button type="submit" class="btn primary">Buscar</button>
+          {% if buscar %}
+          <a href="{{ url_for('familias') }}" class="btn secondary">Limpiar</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    
+    <div>
+      <button type="button" class="btn success" onclick="mostrarModalAgregar()">
+        <span style="margin-right: 8px;">➕</span>
+        Agregar Familia
+      </button>
+    </div>
+  </div>
+
+  <!-- Información de paginación -->
+  {% if total_familias > 0 %}
+  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #666; font-size: 0.9rem;">
+        Mostrando {{ familias|length }} de {{ total_familias }} familias
+      </span>
+      {% if total_paginas > 1 %}
+      <div style="display: flex; gap: 5px; align-items: center;">
+        {% if pagina > 1 %}
+        <a href="{{ url_for('familias', pagina=pagina-1, buscar=buscar) }}" class="btn small secondary">← Anterior</a>
+        {% endif %}
+        
+        <span style="color: #666; font-size: 0.9rem;">
+          Página {{ pagina }} de {{ total_paginas }}
+        </span>
+        
+        {% if pagina < total_paginas %}
+        <a href="{{ url_for('familias', pagina=pagina+1, buscar=buscar) }}" class="btn small secondary">Siguiente →</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Lista de Familias -->
+<div class="card">
+  <div class="card-header">
+    <h3>Familias Registradas: {{ total_familias }}</h3>
+    <p>Lista completa de familias en el sistema</p>
+  </div>
+
+  {% if familias %}
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Información de Contacto</th>
+          <th>Paciente</th>
+          <th>Identificación</th>
+          <th>Teléfonos</th>
+          <th>Dirección</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for familia in familias %}
+        <tr>
+          <td>
+            <strong>{{ familia.nombres_apellidos }}</strong><br>
+            <small style="color: #666;">{{ familia.email if familia.email else 'Sin email' }}</small>
+          </td>
+          <td>
+            <strong>{{ familia.nombre_hijo_hija }}</strong><br>
+            <small style="color: #666;">
+              {% if familia.edad_actual %}
+                {{ familia.edad_actual }} años
+              {% else %}
+                Edad no especificada
+              {% endif %}
+            </small>
+          </td>
+          <td>
+            <span style="background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+              {{ familia.tipo_identificacion }}: {{ familia.numero_identificacion }}
+            </span>
+          </td>
+          <td>
+            <strong>{{ familia.telefono_principal }}</strong>
+            {% if familia.telefono_secundario %}
+            <br><small style="color: #666;">Sec: {{ familia.telefono_secundario }}</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if familia.direccion %}
+            <small>{{ familia.direccion[:50] }}{% if familia.direccion|length > 50 %}...{% endif %}</small>
+            {% else %}
+            <small style="color: #999;">Sin dirección</small>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button type="button" class="btn small info" onclick="mostrarDetallesFamilia({{ familia.id }})">
+                👁️ Ver
+              </button>
+              <a href="{{ url_for('calendario') }}?familia_id={{ familia.id }}" class="btn small primary">
+                📅 Cita
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Navegación inferior -->
+  {% if total_paginas > 1 %}
+  <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+    {% if pagina > 1 %}
+    <a href="{{ url_for('familias', pagina=1, buscar=buscar) }}" class="btn small secondary">« Primera</a>
+    <a href="{{ url_for('familias', pagina=pagina-1, buscar=buscar) }}" class="btn small secondary">← Anterior</a>
+    {% endif %}
+    
+    <span style="padding: 8px 12px; background: #007bff; color: white; border-radius: 6px; font-size: 0.9rem;">
+      Página {{ pagina }} de {{ total_paginas }}
+    </span>
+    
+    {% if pagina < total_paginas %}
+    <a href="{{ url_for('familias', pagina=pagina+1, buscar=buscar) }}" class="btn small secondary">Siguiente →</a>
+    <a href="{{ url_for('familias', pagina=total_paginas, buscar=buscar) }}" class="btn small secondary">Última »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">👨‍👩‍👧‍👦</div>
+    <h3>No se encontraron familias</h3>
+    <p>{% if buscar %}No hay familias que coincidan con "{{ buscar }}"{% else %}No hay familias registradas en el sistema{% endif %}</p>
+    <p>Agrega una nueva familia usando el botón superior.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Agregar Familia -->
+<div id="agregarModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="close">&times;</span>
+    <h3>➕ Agregar Nueva Familia</h3>
+    <form action="{{ url_for('agregar_familia') }}" method="post" id="formAgregarFamilia">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="nombres_apellidos">Nombres y Apellidos *</label>
+          <input type="text" name="nombres_apellidos" id="nombres_apellidos" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="nombre_hijo_hija">Nombre del Hijo/Hija *</label>
+          <input type="text" name="nombre_hijo_hija" id="nombre_hijo_hija" required>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="tipo_identificacion">Tipo Identificación *</label>
+          <select name="tipo_identificacion" id="tipo_identificacion" required>
+            <option value="Cédula">Cédula</option>
+            <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+            <option value="Pasaporte">Pasaporte</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="numero_identificacion">Número Identificación *</label>
+          <input type="text" name="numero_identificacion" id="numero_identificacion" required>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="telefono_principal">Teléfono Principal *</label>
+          <input type="tel" name="telefono_principal" id="telefono_principal" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="telefono_secundario">Teléfono Secundario</label>
+          <input type="tel" name="telefono_secundario" id="telefono_secundario">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" name="email" id="email">
+        </div>
+        
+        <div class="form-group">
+          <label for="fecha_nacimiento_hijo">Fecha Nacimiento Hijo/Hija</label>
+          <input type="date" name="fecha_nacimiento_hijo" id="fecha_nacimiento_hijo">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="direccion">Dirección</label>
+        <textarea name="direccion" id="direccion" rows="2" placeholder="Dirección completa..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="notas">Notas Adicionales</label>
+        <textarea name="notas" id="notas" rows="2" placeholder="Información adicional relevante..."></textarea>
+      </div>
+
+      <button type="submit" class="btn primary">Agregar Familia</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Ver Detalles Familia -->
+<div id="detallesFamiliaModal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <span class="close">&times;</span>
+    <h3>👁️ Detalles de Familia</h3>
+    <div id="detallesFamiliaContent">
+      <div style="text-align: center; padding: 40px 20px;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+        <p style="color: #666; font-size: 1rem;">Cargando información de la familia...</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="cerrarModal('detallesFamiliaModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.table-container {
+  overflow-x: auto;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 2% auto;
+  padding: 0;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalSlideIn 0.3s ease-out;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px 25px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 25px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 140px);
+}
+
+.modal-footer {
+  padding: 20px 25px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #666;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close:hover {
+  color: #000;
+  background: rgba(0,0,0,0.05);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.familia-detalle {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.familia-detalle strong {
+  color: #495057;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.familia-detalle .valor {
+  color: #333;
+  font-weight: 500;
+}
+
+.familia-info-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.familia-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 4px solid #3498db;
+}
+
+.familia-section h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.info-item {
+  margin-bottom: 8px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+.info-value {
+  color: #2c3e50;
+  word-break: break-word;
+  padding: 4px 0;
+}
+
+.info-value.empty {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.citas-section {
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+}
+
+.cita-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+}
+
+.cita-item.cancelada {
+  border-left-color: #f44336;
+}
+
+.cita-item.agendada {
+  border-left-color: #ffc107;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 2% auto;
+    width: 95%;
+    padding: 0;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .btn.small {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    margin-bottom: 5px;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 15px;
+  }
+}
+</style>
+
+<script>
+function mostrarModalAgregar() {
+  document.getElementById('agregarModal').style.display = 'block';
+}
+
+function mostrarDetallesFamilia(familiaId) {
+  document.getElementById('detallesFamiliaModal').style.display = 'block';
+  
+  // Obtener información de la familia desde la API
+  fetch(`/api/familias/${familiaId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error al obtener datos de la familia');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.status === 'success') {
+        const familia = data.familia;
+        const citasRecientes = data.citas_recientes || [];
+        
+        let contenido = `
+          <div class="familia-info-container">
+            <div class="familia-section">
+              <h4>👤 Información de Contacto</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Nombre Completo</div>
+                  <div class="info-value">${familia.nombres_apellidos || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Email</div>
+                  <div class="info-value ${!familia.email ? 'empty' : ''}">
+                    ${familia.email || 'No especificado'}
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Identificación</div>
+                  <div class="info-value">${familia.tipo_identificacion || 'No especificado'}: ${familia.numero_identificacion || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>📞 Información de Contacto</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Teléfono Principal</div>
+                  <div class="info-value">${familia.telefono_principal || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Teléfono Secundario</div>
+                  <div class="info-value ${!familia.telefono_secundario ? 'empty' : ''}">
+                    ${familia.telefono_secundario || 'No especificado'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>🏠 Dirección</h4>
+              <div class="info-item">
+                <div class="info-label">Dirección Completa</div>
+                <div class="info-value ${!familia.direccion ? 'empty' : ''}">
+                  ${familia.direccion || 'No especificada'}
+                </div>
+              </div>
+            </div>
+            
+            <div class="familia-section">
+              <h4>👶 Información del Paciente</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Nombre del Hijo/Hija</div>
+                  <div class="info-value">${familia.nombre_hijo_hija || 'No especificado'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Fecha de Nacimiento</div>
+                  <div class="info-value ${!familia.fecha_nacimiento_hijo ? 'empty' : ''}">
+                    ${familia.fecha_nacimiento_formateada || familia.fecha_nacimiento_hijo || 'No especificada'}
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Edad Actual</div>
+                  <div class="info-value ${!familia.edad_actual ? 'empty' : ''}">
+                    ${familia.edad_actual ? familia.edad_actual + ' años' : 'No calculada'}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        
+        // Agregar sección de citas recientes si existen
+        if (citasRecientes.length > 0) {
+          contenido += `
+            <div class="familia-section citas-section">
+              <h4>📅 Citas Recientes</h4>
+              <div style="font-size: 0.9rem;">
+                ${citasRecientes.map(cita => `
+                  <div class="cita-item ${cita.estado}">
+                    <strong>#${cita.id}</strong> - ${cita.fecha_hora ? cita.fecha_hora.substring(0, 16) : 'Fecha no disponible'}<br>
+                    <small>${cita.profesional_nombre || 'Profesional no asignado'} - ${cita.tipo_consulta || 'Tipo no especificado'}</small><br>
+                    <span style="background: ${getColorEstado(cita.estado)}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
+                      ${getTextoEstado(cita.estado)}
+                    </span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>`;
+        }
+        
+        // Agregar notas si existen
+        if (familia.notas) {
+          contenido += `
+            <div class="familia-section">
+              <h4>📝 Información Adicional</h4>
+              <div class="info-item">
+                <div class="info-label">Notas</div>
+                <div class="info-value">${familia.notas}</div>
+              </div>
+            </div>`;
+        }
+        
+        contenido += `</div>`;
+        
+        document.getElementById('detallesFamiliaContent').innerHTML = contenido;
+      } else {
+        throw new Error(data.error || 'Error desconocido');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('detallesFamiliaContent').innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+          <div style="font-size: 3rem; margin-bottom: 20px;">❌</div>
+          <h4>Error al cargar información</h4>
+          <p>No se pudieron cargar los datos de la familia.</p>
+          <p><small>Error: ${error.message}</small></p>
+          <button type="button" class="btn primary" onclick="mostrarDetallesFamilia(${familiaId})" style="margin-top: 15px;">
+            🔄 Reintentar
+          </button>
+        </div>
+      `;
+    });
+}
+
+// Funciones auxiliares para estados
+function getColorEstado(estado) {
+  const colores = {
+    'agendada': '#ffc107',
+    'confirmada': '#28a745',
+    'atendida': '#17a2b8',
+    'cancelada': '#dc3545',
+    'no_atendida': '#6c757d'
+  };
+  return colores[estado] || '#6c757d';
+}
+
+function getTextoEstado(estado) {
+  const textos = {
+    'agendada': '⏳ Agendada',
+    'confirmada': '✅ Confirmada',
+    'atendida': '🎉 Atendida',
+    'cancelada': '❌ Cancelada',
+    'no_atendida': '⚠️ No Atendida'
+  };
+  return textos[estado] || estado;
+}
+
+function cerrarModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+}
+
+// Cerrar modales
+document.querySelectorAll('.close').forEach(closeBtn => {
+  closeBtn.onclick = function() {
+    this.closest('.modal').style.display = 'none';
+  };
+});
+
+// Cerrar modal al hacer click fuera
+window.onclick = function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = 'none';
+  }
+}
+
+// Tecla Escape para cerrar modales
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.style.display = 'none';
+    });
+  }
+});
+
+// Validar formulario antes de enviar
+document.getElementById('formAgregarFamilia').onsubmit = function(e) {
+  const telefono = document.getElementById('telefono_principal').value;
+  const email = document.getElementById('email').value;
+  
+  // Validar teléfono
+  if (!telefono.match(/^[0-9+]{10,15}$/)) {
+    alert('Por favor ingrese un número de teléfono válido (solo números, 10-15 dígitos)');
+    e.preventDefault();
+    return false;
+  }
+  
+  // Validar email si se proporciona
+  if (email && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    alert('Por favor ingrese un email válido');
+    e.preventDefault();
+    return false;
+  }
+  
+  return true;
+}
+</script>
+{% endblock %}

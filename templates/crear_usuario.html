@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Crear Usuario{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>➕ Crear Nuevo Usuario</h1>
+    <p class="welcome-text" style="color: white;">Agregar nuevo usuario al sistema</p>
+  </div>
+</div>
+
+<div class="card">
+  <form action="{{ url_for('usuarios_crear') }}" method="post">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="usuario">👤 Usuario *</label>
+        <input type="text" name="usuario" id="usuario" required 
+               placeholder="Nombre de usuario único" 
+               pattern="[a-zA-Z0-9_]+" title="Solo letras, números y guiones bajos">
+        <small style="color: #666;">Solo letras, números y _ (sin espacios)</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="contrasena">🔑 Contraseña *</label>
+        <input type="password" name="contrasena" id="contrasena" required 
+               placeholder="Mínimo 6 caracteres" minlength="6">
+        <small style="color: #666;">Mínimo 6 caracteres</small>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="nombre_completo">👤 Nombre Completo *</label>
+        <input type="text" name="nombre_completo" id="nombre_completo" required 
+               placeholder="Nombre completo del usuario">
+      </div>
+      
+      <div class="form-group">
+        <label for="rol">🎭 Rol *</label>
+        <select name="rol" id="rol" required>
+          <option value="">Seleccionar rol...</option>
+          <option value="admin">👑 Administrador - Acceso completo al sistema</option>
+          <option value="profesional">👩‍⚕️ Profesional - Gestión de citas propias</option>
+          <option value="coordinadora">📊 Coordinadora - Gestión de citas y reportes</option>
+          <option value="administracion">💰 Administración - Gestión de autorizaciones</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="color_calendario">🎨 Color en Calendario</label>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="color" name="color_calendario" id="color_calendario" value="#3498db" 
+               style="width: 60px; height: 40px; padding: 0; border: none;">
+        <input type="text" value="#3498db" id="color_text" 
+               style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"
+               placeholder="#3498db" pattern="^#[0-9A-Fa-f]{6}$">
+      </div>
+      <small style="color: #666;">Color que identificará al usuario en el calendario</small>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap;">
+      <button type="submit" class="btn success">
+        <span style="margin-right: 8px;">✅</span>
+        Crear Usuario
+      </button>
+      <a href="{{ url_for('usuarios') }}" class="btn secondary">
+        <span style="margin-right: 8px;">↩️</span>
+        Volver a Usuarios
+      </a>
+      <button type="reset" class="btn warning">
+        <span style="margin-right: 8px;">🔄</span>
+        Limpiar Formulario
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+}
+
+small {
+  display: block;
+  margin-top: 5px;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const colorPicker = document.getElementById('color_calendario');
+  const colorText = document.getElementById('color_text');
+  
+  // Sincronizar color picker con texto
+  colorPicker.addEventListener('input', function() {
+    colorText.value = this.value;
+  });
+  
+  colorText.addEventListener('input', function() {
+    if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+      colorPicker.value = this.value;
+    }
+  });
+  
+  // Validar formulario
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const usuario = document.getElementById('usuario').value;
+    const contrasena = document.getElementById('contrasena').value;
+    const nombre = document.getElementById('nombre_completo').value;
+    const rol = document.getElementById('rol').value;
+    
+    if (!usuario || !contrasena || !nombre || !rol) {
+      alert('Por favor complete todos los campos requeridos');
+      e.preventDefault();
+      return false;
+    }
+    
+    if (contrasena.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      e.preventDefault();
+      return false;
+    }
+    
+    if (!usuario.match(/^[a-zA-Z0-9_]+$/)) {
+      alert('El usuario solo puede contener letras, números y guiones bajos (sin espacios)');
+      e.preventDefault();
+      return false;
+    }
+    
+    return true;
+  });
+});
+</script>
+{% endblock %}

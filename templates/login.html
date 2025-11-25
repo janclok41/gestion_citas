@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión - Sistema de Citas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f8fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            animation: fadeIn 1s ease-in-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 380px;
+            padding: 40px 30px;
+            text-align: center;
+            opacity: 0;
+            animation: appear 0.8s ease-in-out 0.3s forwards;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes appear {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .login-container img {
+            height: 70px;
+            margin-bottom: 15px;
+        }
+
+        .login-container h2 {
+            margin: 0 0 25px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            border-color: #0052cc;
+            box-shadow: 0 0 0 2px rgba(0,82,204,0.1);
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.1s ease-in-out;
+        }
+
+        .login-container button:hover {
+            background: #003d99;
+        }
+
+        .login-container button:active {
+            transform: scale(0.98);
+        }
+
+        .flash-messages {
+            margin-bottom: 15px;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .alert-danger { background: #ffe6e6; color: #d8000c; }
+        .alert-success { background: #e6ffed; color: #007f33; }
+
+        .login-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #e0e0e0;
+            animation: fadeIn 1s ease-in-out 0.8s forwards;
+            opacity: 0;
+        }
+
+        .developer-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .developer-text {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .version-text {
+            font-size: 11px;
+            color: #007bff;
+            margin: 0;
+            font-weight: 500;
+            background: rgba(0, 123, 255, 0.1);
+            padding: 3px 10px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 123, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+        <h2>Sistema de Gestión de Citas</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="post">
+            <input type="text" name="usuario" placeholder="Usuario" required autofocus>
+            <input type="password" name="contrasena" placeholder="Contraseña" required>
+            <button type="submit">Ingresar</button>
+        </form>
+    </div>
+
+    <div class="login-footer">
+        <div class="developer-info">
+            <p class="developer-text">Sistema de Gestión de Citas - Corporación Síndrome de Down</p>
+            <p class="version-text">Versión 1.0</p>
+        </div>
+    </div>
+
+</body>
+</html>
