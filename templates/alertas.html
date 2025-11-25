@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Alertas y Notificaciones{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>🔔 Alertas y Notificaciones</h1>
+    <p class="welcome-text" style="color: white;">Gestión de notificaciones del sistema</p>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h3>📢 Tus Alertas Pendientes</h3>
+    {% if alertas %}
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span class="badge" style="background: #007bff; color: white; padding: 6px 12px; border-radius: 20px;">
+        {{ alertas|length }} alerta(s)
+      </span>
+      <form action="{{ url_for('marcar_todas_leidas') }}" method="post" style="display: inline;">
+        <button type="submit" class="btn small success" onclick="return confirm('¿Marcar todas las alertas como leídas?')">
+          <span style="margin-right: 5px;">📭</span>
+          Marcar todas
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if alertas %}
+  <div class="alerts-container">
+    {% for alerta in alertas %}
+      <div class="alert-item" id="alerta-{{ alerta.id }}">
+        <div class="alert-content">
+          <div class="alert-icon">
+            {% if alerta.tipo == 'info' %}
+            ℹ️
+            {% elif alerta.tipo == 'warning' %}
+            ⚠️
+            {% elif alerta.tipo == 'success' %}
+            ✅
+            {% elif alerta.tipo == 'danger' %}
+            ❌
+            {% else %}
+            📢
+            {% endif %}
+          </div>
+          <div class="alert-message">
+            <strong>{{ alerta.mensaje }}</strong>
+            {% if alerta.cita_id %}
+            <span class="alert-meta">Cita #{{ alerta.cita_id }}</span>
+            {% endif %}
+            {% if alerta.familia_nombre %}
+            <span class="alert-meta">Familia: {{ alerta.familia_nombre }}</span>
+            {% endif %}
+            <span class="alert-meta">Fecha: {{ alerta.fecha_creacion[:16] }}</span>
+          </div>
+          <div class="alert-actions">
+            <form action="{{ url_for('marcar_alerta_leida', alerta_id=alerta.id) }}" method="post" style="display: inline;">
+              <button type="submit" class="btn small success" onclick="marcarAlertaLeida({{ alerta.id }})">
+                <span style="margin-right: 5px;">✅</span>
+                Marcar leída
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🎉</div>
+    <h3>¡No hay alertas pendientes!</h3>
+    <p>Estás al día con todas tus notificaciones.</p>
+    <p>Las nuevas alertas aparecerán aquí automáticamente.</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.alerts-container {
+  max-width: 100%;
+}
+
+.alert-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+  background: white;
+  border-left: 4px solid #007bff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+.alert-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.alert-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+.alert-message strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.alert-meta {
+  display: block;
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 4px;
+  padding: 2px 0;
+}
+
+.alert-actions {
+  flex-shrink: 0;
+}
+
+.alert-actions .btn.success {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.alert-actions .btn.success:hover {
+  background: #218838;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.btn.primary {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn.primary:hover {
+  background: #0056b3;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+/* Animaciones para eliminar alertas */
+.alert-item.fade-out {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .alert-content {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .alert-actions {
+    align-self: flex-end;
+  }
+  
+  .empty-state {
+    padding: 40px 15px;
+  }
+  
+  .empty-icon {
+    font-size: 3rem;
+  }
+}
+</style>
+
+<script>
+function marcarAlertaLeida(alertaId) {
+  const alertaElement = document.getElementById(`alerta-${alertaId}`);
+  if (alertaElement) {
+    alertaElement.classList.add('fade-out');
+  }
+  
+  setTimeout(() => {
+    if (alertaElement) {
+      alertaElement.remove();
+    }
+    
+    const alertasRestantes = document.querySelectorAll('.alert-item').length;
+    if (alertasRestantes === 0) {
+      mostrarEstadoVacio();
+    }
+    
+    if (window.actualizarContadorAlertas) {
+      window.actualizarContadorAlertas();
+    }
+  }, 300);
+}
+
+function mostrarEstadoVacio() {
+  const cardContent = document.querySelector('.card');
+  if (cardContent) {
+    cardContent.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>📢 Tus Alertas Pendientes</h3>
+      </div>
+      <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <h3>¡No hay alertas pendientes!</h3>
+        <p>Estás al día con todas tus notificaciones.</p>
+        <p>Las nuevas alertas aparecerán aquí automáticamente.</p>
+      </div>
+    `;
+  }
+}
+
+// Actualizar contadores al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    if (window.actualizarContadorAlertas) {
+      window.actualizarContadorAlertas();
+    }
+  }, 100);
+});
+</script>
+{% endblock %}

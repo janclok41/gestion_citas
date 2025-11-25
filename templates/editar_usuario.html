@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuario{% endblock %}
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+  <div class="welcome-message">
+    <h1>✏️ Editar Usuario</h1>
+    <p class="welcome-text" style="color: white;">Modificar información del usuario {{ usuario.usuario }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <form action="{{ url_for('usuarios_editar', username=usuario.usuario) }}" method="post">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="usuario">👤 Usuario:</label>
+        <input type="text" id="usuario" value="{{ usuario.usuario }}" disabled style="background: #f8f9fa;">
+        <small style="color: #666;">El nombre de usuario no se puede modificar</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="activo">📊 Estado:</label>
+        <select name="activo" id="activo" required>
+          <option value="1" {% if usuario.activo %}selected{% endif %}>✅ Activo</option>
+          <option value="0" {% if not usuario.activo %}selected{% endif %}>❌ Inactivo</option>
+        </select>
+        <small style="color: #666;">Usuarios inactivos no pueden iniciar sesión</small>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="nombre_completo">👤 Nombre Completo *</label>
+      <input type="text" name="nombre_completo" id="nombre_completo" value="{{ usuario.nombre_completo }}" required>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="rol">🎭 Rol *</label>
+        <select name="rol" id="rol" required>
+          <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>👑 Administrador</option>
+          <option value="profesional" {% if usuario.rol == 'profesional' %}selected{% endif %}>👩‍⚕️ Profesional</option>
+          <option value="coordinadora" {% if usuario.rol == 'coordinadora' %}selected{% endif %}>📊 Coordinadora</option>
+          <option value="administracion" {% if usuario.rol == 'administracion' %}selected{% endif %}>💰 Administración</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="color_calendario">🎨 Color en Calendario</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" name="color_calendario" id="color_calendario" value="{{ usuario.color_calendario }}" 
+                 style="width: 60px; height: 40px; padding: 0; border: none;">
+          <input type="text" value="{{ usuario.color_calendario }}" id="color_text" 
+                 style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"
+                 placeholder="#3498db" pattern="^#[0-9A-Fa-f]{6}$">
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="contrasena">🔑 Nueva Contraseña (opcional):</label>
+      <input type="password" name="contrasena" id="contrasena" placeholder="Dejar vacío para mantener la actual">
+      <small style="color: #666;">Solo completa este campo si deseas cambiar la contraseña (mínimo 6 caracteres)</small>
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap;">
+      <button type="submit" class="btn primary">
+        <span style="margin-right: 8px;">💾</span>
+        Guardar Cambios
+      </button>
+      <a href="{{ url_for('usuarios') }}" class="btn secondary">
+        <span style="margin-right: 8px;">↩️</span>
+        Volver a Usuarios
+      </a>
+      {% if usuario.usuario != session.usuario %}
+      <a href="{{ url_for('usuarios_restablecer', username=usuario.usuario) }}" class="btn info" 
+         onclick="return confirm('¿Restablecer contraseña de {{ usuario.usuario }}?')">
+        <span style="margin-right: 8px;">🔑</span>
+        Restablecer Contraseña
+      </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<style>
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+}
+
+small {
+  display: block;
+  margin-top: 5px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const colorPicker = document.getElementById('color_calendario');
+  const colorText = document.getElementById('color_text');
+  
+  // Sincronizar color picker con texto
+  colorPicker.addEventListener('input', function() {
+    colorText.value = this.value;
+  });
+  
+  colorText.addEventListener('input', function() {
+    if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+      colorPicker.value = this.value;
+    }
+  });
+  
+  // Validar formulario
+  document.querySelector('form').onsubmit = function(e) {
+    const contrasena = document.getElementById('contrasena').value;
+    
+    if (contrasena && contrasena.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      e.preventDefault();
+      return false;
+    }
+    
+    return true;
+  }
+});
+</script>
+{% endblock %}
